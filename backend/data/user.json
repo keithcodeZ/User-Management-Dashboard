@@ -1,0 +1,86 @@
+[
+  {
+    "id": 1,
+    "name": "Ava Thompson",
+    "username": "athompson",
+    "email": "ava.thompson@example.com"
+  },
+  {
+    "id": 2,
+    "name": "Liam Carter",
+    "username": "liam.carter",
+    "email": "liam.carter@example.org"
+  },
+  {
+    "id": 3,
+    "name": "Sofia Martinez",
+    "username": "sofia_m",
+    "email": "sofia.martinez@example.net"
+  },
+  {
+    "id": 4,
+    "name": "Noah Patel",
+    "username": "npatel",
+    "email": "noah.patel@example.com"
+  },
+  {
+    "id": 5,
+    "name": "Mia Johnson",
+    "username": "mjohnson",
+    "email": "mia.johnson@example.org"
+  },
+  {
+    "id": 6,
+    "name": "Ethan Nguyen",
+    "username": "ethan_nguyen",
+    "email": "ethan.nguyen@example.com"
+  },
+  {
+    "id": 7,
+    "name": "Isabella Rossi",
+    "username": "bella.rossi",
+    "email": "isabella.rossi@example.net"
+  },
+  {
+    "id": 8,
+    "name": "Lucas Schmidt",
+    "username": "lucas.schmidt",
+    "email": "lucas.schmidt@example.com"
+  },
+  {
+    "id": 9,
+    "name": "Amara Okafor",
+    "username": "amara_ok",
+    "email": "amara.okafor@example.org"
+  },
+  {
+    "id": 10,
+    "name": "Oliver Bennett",
+    "username": "obennett",
+    "email": "oliver.bennett@example.com"
+  },
+  {
+    "id": 11,
+    "name": "Hana Sato",
+    "username": "hana.sato",
+    "email": "hana.sato@example.net"
+  },
+  {
+    "id": 12,
+    "name": "Mateo Silva",
+    "username": "mateo_silva",
+    "email": "mateo.silva@example.com"
+  },
+  {
+    "id": 13,
+    "name": "Chloe Dubois",
+    "username": "chloe.d",
+    "email": "chloe.dubois@example.org"
+  },
+  {
+    "id": 14,
+    "name": "Daniel Kim",
+    "username": "dkim92",
+    "email": "daniel.kim@example.net"
+  }
+]
