@@ -1,3 +1,4 @@
+import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -25,6 +26,7 @@ function UserTable({
   onPageChange,
   onRowsPerPageChange,
   onEdit,
+  onDelete,
 }) {
   if (loading) {
     return (
@@ -83,6 +85,13 @@ function UserTable({
                     onClick={() => onEdit(user)}
                   >
                     <EditIcon />
+                  </IconButton>
+                  <IconButton
+                    aria-label={`Delete ${user.name}`}
+                    size="small"
+                    onClick={() => onDelete(user)}
+                  >
+                    <DeleteIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>

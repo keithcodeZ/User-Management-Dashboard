@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import ConfirmDeleteDialog from './components/ConfirmDeleteDialog.jsx';
 import SearchBar from './components/SearchBar.jsx';
 import UserFormDialog from './components/UserFormDialog.jsx';
 import UserTable from './components/UserTable.jsx';
@@ -27,11 +28,17 @@ function matchesSearch(user, term) {
 }
 
 function App() {
-  const { users, loading, error, reload, createUser, updateUser } = useUsers();
+  const { users, loading, error, reload, createUser, updateUser, deleteUser } =
+    useUsers();
   const [searchText, setSearchText] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [formDialog, setFormDialog] = useState({
+    open: false,
+    user: null,
+    key: 0,
+  });
+  const [deleteDialog, setDeleteDialog] = useState({
     open: false,
     user: null,
     key: 0,
@@ -47,6 +54,15 @@ function App() {
   function handleRowsPerPageChange(rows) {
     setRowsPerPage(rows);
     setPage(0);
+  }
+
+  // Called after a change takes one user out of `matchingUsers`, which is
+  // still the list from before the change. If that user was the only row on a
+  // later page, that page is now empty, so show the previous one.
+  function showPreviousPageIfEmptied() {
+    if (page > 0 && page * rowsPerPage >= matchingUsers.length - 1) {
+      setPage(page - 1);
+    }
   }
 
   // A new key remounts the dialog with fresh state. Closing changes only
@@ -71,6 +87,18 @@ function App() {
     setFormDialog((current) => ({ ...current, open: false }));
   }
 
+  function openDeleteDialog(user) {
+    setDeleteDialog((current) => ({
+      open: true,
+      user,
+      key: current.key + 1,
+    }));
+  }
+
+  function closeDeleteDialog() {
+    setDeleteDialog((current) => ({ ...current, open: false }));
+  }
+
   // A failed save rejects to the dialog, which stays open to show the errors.
   async function handleSave(value) {
     const editedUser = formDialog.user;
@@ -82,16 +110,16 @@ function App() {
 
     const updated = await updateUser(editedUser.id, value);
     closeFormDialog();
-    // `matchingUsers` is the list from before the update. If the edited user
-    // was the only row on a later page and no longer matches the search, that
-    // page is now empty, so show the previous one.
-    if (
-      page > 0 &&
-      page * rowsPerPage >= matchingUsers.length - 1 &&
-      filterUsers([updated], searchTerm).length === 0
-    ) {
-      setPage(page - 1);
+    if (filterUsers([updated], searchTerm).length === 0) {
+      showPreviousPageIfEmptied();
     }
+  }
+
+  // A failed delete rejects to the dialog, which stays open.
+  async function handleConfirmDelete() {
+    await deleteUser(deleteDialog.user.id);
+    closeDeleteDialog();
+    showPreviousPageIfEmptied();
   }
 
   return (
@@ -120,6 +148,7 @@ function App() {
           onPageChange={setPage}
           onRowsPerPageChange={handleRowsPerPageChange}
           onEdit={openEditDialog}
+          onDelete={openDeleteDialog}
         />
       </Stack>
       <UserFormDialog
@@ -128,6 +157,13 @@ function App() {
         user={formDialog.user}
         onSubmit={handleSave}
         onClose={closeFormDialog}
+      />
+      <ConfirmDeleteDialog
+        key={`delete-${deleteDialog.key}`}
+        open={deleteDialog.open}
+        user={deleteDialog.user}
+        onConfirm={handleConfirmDelete}
+        onClose={closeDeleteDialog}
       />
     </Box>
   );
