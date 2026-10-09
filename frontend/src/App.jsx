@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import SearchBar from './components/SearchBar.jsx';
+import UserFormDialog from './components/UserFormDialog.jsx';
 import UserTable from './components/UserTable.jsx';
 import { useDebouncedValue } from './hooks/useDebouncedValue.js';
 import { useUsers } from './hooks/useUsers.js';
@@ -24,10 +27,15 @@ function matchesSearch(user, term) {
 }
 
 function App() {
-  const { users, loading, error, reload } = useUsers();
+  const { users, loading, error, reload, createUser } = useUsers();
   const [searchText, setSearchText] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [formDialog, setFormDialog] = useState({
+    open: false,
+    user: null,
+    key: 0,
+  });
   const searchTerm = useDebouncedValue(searchText, 300).trim();
 
   function handleSearchChange(text) {
@@ -40,14 +48,41 @@ function App() {
     setPage(0);
   }
 
+  // A new key remounts the dialog with fresh state. Closing changes only
+  // `open`, so the content stays in place during the exit transition.
+  function openCreateDialog() {
+    setFormDialog((current) => ({
+      open: true,
+      user: null,
+      key: current.key + 1,
+    }));
+  }
+
+  function closeFormDialog() {
+    setFormDialog((current) => ({ ...current, open: false }));
+  }
+
+  // A failed create rejects to the dialog, which stays open to show the errors.
+  async function handleSave(value) {
+    await createUser(value);
+    closeFormDialog();
+  }
+
   return (
     <Box sx={{ maxWidth: 960, mx: 'auto', p: 3 }}>
       <Stack spacing={3}>
         <Typography variant="h4" component="h1">
           User Management Dashboard
         </Typography>
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
           <SearchBar value={searchText} onChange={handleSearchChange} />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={openCreateDialog}
+          >
+            Add User
+          </Button>
         </Stack>
         <UserTable
           users={filterUsers(users, searchTerm)}
@@ -60,6 +95,13 @@ function App() {
           onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Stack>
+      <UserFormDialog
+        key={formDialog.key}
+        open={formDialog.open}
+        user={formDialog.user}
+        onSubmit={handleSave}
+        onClose={closeFormDialog}
+      />
     </Box>
   );
 }
