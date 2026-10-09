@@ -27,7 +27,7 @@ function matchesSearch(user, term) {
 }
 
 function App() {
-  const { users, loading, error, reload, createUser } = useUsers();
+  const { users, loading, error, reload, createUser, updateUser } = useUsers();
   const [searchText, setSearchText] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -37,6 +37,7 @@ function App() {
     key: 0,
   });
   const searchTerm = useDebouncedValue(searchText, 300).trim();
+  const matchingUsers = filterUsers(users, searchTerm);
 
   function handleSearchChange(text) {
     setSearchText(text);
@@ -58,14 +59,39 @@ function App() {
     }));
   }
 
+  function openEditDialog(user) {
+    setFormDialog((current) => ({
+      open: true,
+      user,
+      key: current.key + 1,
+    }));
+  }
+
   function closeFormDialog() {
     setFormDialog((current) => ({ ...current, open: false }));
   }
 
-  // A failed create rejects to the dialog, which stays open to show the errors.
+  // A failed save rejects to the dialog, which stays open to show the errors.
   async function handleSave(value) {
-    await createUser(value);
+    const editedUser = formDialog.user;
+    if (editedUser === null) {
+      await createUser(value);
+      closeFormDialog();
+      return;
+    }
+
+    const updated = await updateUser(editedUser.id, value);
     closeFormDialog();
+    // `matchingUsers` is the list from before the update. If the edited user
+    // was the only row on a later page and no longer matches the search, that
+    // page is now empty, so show the previous one.
+    if (
+      page > 0 &&
+      page * rowsPerPage >= matchingUsers.length - 1 &&
+      filterUsers([updated], searchTerm).length === 0
+    ) {
+      setPage(page - 1);
+    }
   }
 
   return (
@@ -85,7 +111,7 @@ function App() {
           </Button>
         </Stack>
         <UserTable
-          users={filterUsers(users, searchTerm)}
+          users={matchingUsers}
           loading={loading}
           error={error}
           onRetry={reload}
@@ -93,6 +119,7 @@ function App() {
           rowsPerPage={rowsPerPage}
           onPageChange={setPage}
           onRowsPerPageChange={handleRowsPerPageChange}
+          onEdit={openEditDialog}
         />
       </Stack>
       <UserFormDialog

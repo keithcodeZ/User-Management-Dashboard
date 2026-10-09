@@ -1,7 +1,9 @@
+import EditIcon from '@mui/icons-material/Edit';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -22,6 +24,7 @@ function UserTable({
   rowsPerPage,
   onPageChange,
   onRowsPerPageChange,
+  onEdit,
 }) {
   if (loading) {
     return (
@@ -73,7 +76,15 @@ function UserTable({
                 <TableCell>{user.name}</TableCell>
                 <TableCell>{user.username}</TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell />
+                <TableCell>
+                  <IconButton
+                    aria-label={`Edit ${user.name}`}
+                    size="small"
+                    onClick={() => onEdit(user)}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                </TableCell>
               </TableRow>
             ))
           )}
