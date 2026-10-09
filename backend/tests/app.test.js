@@ -17,6 +17,7 @@ const ROUTE_NOT_FOUND = 'Route not found.';
 const INVALID_ID = 'User id must be a positive integer.';
 const VALIDATION_FAILED = 'Validation failed.';
 const CORRUPT_FILE = 'User data file is corrupt.';
+const USER_NOT_FOUND = 'User not found.';
 
 describe('createApp', () => {
   let dir;
@@ -87,6 +88,7 @@ describe('createApp', () => {
       ['GET', '/api/users', undefined],
       ['GET', '/api/users/1', undefined],
       ['POST', '/api/users', NEW_USER],
+      ['PUT', '/api/users/1', NEW_USER],
     ])('responds 500 to %s %s and logs the error', async (method, path, body) => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -121,12 +123,15 @@ describe('createApp', () => {
   });
 
   describe('a request that fails several checks', () => {
-    // An id that no user in the seed copy has.
+    // An id that no user in the seed copy has, and the username of its first
+    // user in upper case.
     let unusedId;
+    let takenUsername;
 
     beforeEach(async () => {
       const storedUsers = await readUsers(filePath);
       unusedId = Math.max(...storedUsers.map((user) => user.id)) + 1;
+      takenUsername = storedUsers[0].username.toUpperCase();
     });
 
     // `first` is the check that decides the response and `later` a check the
@@ -149,6 +154,14 @@ describe('createApp', () => {
         corruptFile: false,
         status: 404,
         message: ROUTE_NOT_FOUND,
+      },
+      {
+        first: 'the invalid id',
+        later: 'invalid user input',
+        send: () => request(app).put('/api/users/abc').send({ name: 'A' }),
+        corruptFile: false,
+        status: 400,
+        message: INVALID_ID,
       },
       {
         first: 'the invalid id',
@@ -178,6 +191,15 @@ describe('createApp', () => {
         corruptFile: true,
         status: 500,
         message: CORRUPT_FILE,
+      },
+      {
+        first: 'the unknown user',
+        later: 'a username in use',
+        send: () =>
+          request(app).put(`/api/users/${unusedId}`).send({ ...NEW_USER, username: takenUsername }),
+        corruptFile: false,
+        status: 404,
+        message: USER_NOT_FOUND,
       },
     ])(
       'reports $first ($status) before $later',

@@ -22,5 +22,14 @@ export function createUserController(userService) {
     async create(req, res) {
       res.status(201).json(await userService.createUser(req.body));
     },
+
+    /**
+     * Replaces the user with the `:id` and sends the result with 200.
+     * validateIdParam has already checked the id, and validateUserBody has
+     * replaced the body with the trimmed name, username, and email.
+     */
+    async update(req, res) {
+      res.status(200).json(await userService.updateUser(Number(req.params.id), req.body));
+    },
   };
 }
