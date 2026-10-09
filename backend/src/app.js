@@ -1,5 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import { createUserService } from './services/userService.js';
+import { createUserController } from './controllers/userController.js';
+import { createUserRouter } from './routes/userRoutes.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -10,10 +13,18 @@ import { errorHandler } from './middleware/errorHandler.js';
 export function createApp({ userRepository, corsOrigin }) {
   const app = express();
 
+  // Each layer receives the one below it, so the repository passed in is the
+  // only place users are read from or written to.
+  const userService = createUserService(userRepository);
+  const userController = createUserController(userService);
+  const userRouter = createUserRouter(userController);
+
   app.use(cors({ origin: corsOrigin }));
   // strict: false, so a JSON body that is not an object still reaches the
   // validator and gets a field-level 400 instead of a parse error.
   app.use(express.json({ strict: false }));
+
+  app.use('/api/users', userRouter);
 
   app.use(notFound);
   app.use(errorHandler);
