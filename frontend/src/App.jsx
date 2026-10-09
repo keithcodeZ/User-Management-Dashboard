@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import AddIcon from '@mui/icons-material/Add';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Snackbar from '@mui/material/Snackbar';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import ConfirmDeleteDialog from './components/ConfirmDeleteDialog.jsx';
@@ -41,6 +43,12 @@ function App() {
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
     user: null,
+    key: 0,
+  });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
     key: 0,
   });
   const searchTerm = useDebouncedValue(searchText, 300).trim();
@@ -99,26 +107,66 @@ function App() {
     setDeleteDialog((current) => ({ ...current, open: false }));
   }
 
-  // A failed save rejects to the dialog, which stays open to show the errors.
+  // A new key remounts the Snackbar, so a newer message replaces the shown one
+  // and restarts the 6-second timer.
+  function showSnackbar(message, severity) {
+    setSnackbar((current) => ({
+      open: true,
+      message,
+      severity,
+      key: current.key + 1,
+    }));
+  }
+
+  // Clicks elsewhere on the page do not dismiss the message.
+  function handleSnackbarClose(_event, reason) {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbar((current) => ({ ...current, open: false }));
+  }
+
+  // A failed save rejects to the dialog, which stays open. Field errors show
+  // under the inputs, and any other failure shows an error snackbar.
   async function handleSave(value) {
     const editedUser = formDialog.user;
     if (editedUser === null) {
-      await createUser(value);
+      try {
+        await createUser(value);
+      } catch (err) {
+        if (!err.fields) showSnackbar(err.message, 'error');
+        throw err;
+      }
       closeFormDialog();
+      showSnackbar('User created', 'success');
       return;
     }
 
-    const updated = await updateUser(editedUser.id, value);
+    let updated;
+    try {
+      updated = await updateUser(editedUser.id, value);
+    } catch (err) {
+      if (!err.fields) showSnackbar(err.message, 'error');
+      throw err;
+    }
     closeFormDialog();
+    showSnackbar('User updated', 'success');
     if (filterUsers([updated], searchTerm).length === 0) {
       showPreviousPageIfEmptied();
     }
   }
 
-  // A failed delete rejects to the dialog, which stays open.
+  // A failed delete shows an error snackbar and rejects to the dialog, which
+  // stays open.
   async function handleConfirmDelete() {
-    await deleteUser(deleteDialog.user.id);
+    try {
+      await deleteUser(deleteDialog.user.id);
+    } catch (err) {
+      showSnackbar(err.message, 'error');
+      throw err;
+    }
     closeDeleteDialog();
+    showSnackbar('User deleted', 'success');
     showPreviousPageIfEmptied();
   }
 
@@ -152,7 +200,7 @@ function App() {
         />
       </Stack>
       <UserFormDialog
-        key={formDialog.key}
+        key={`form-${formDialog.key}`}
         open={formDialog.open}
         user={formDialog.user}
         onSubmit={handleSave}
@@ -165,6 +213,20 @@ function App() {
         onConfirm={handleConfirmDelete}
         onClose={closeDeleteDialog}
       />
+      <Snackbar
+        key={`snackbar-${snackbar.key}`}
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
