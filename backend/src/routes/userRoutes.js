@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateIdParam } from '../validation/userValidation.js';
+import { validateIdParam, validateUserBody } from '../validation/userValidation.js';
 
 /**
  * Maps each user endpoint to its validation middleware and controller
@@ -10,6 +10,7 @@ export function createUserRouter(userController) {
 
   router.get('/', userController.list);
   router.get('/:id', validateIdParam, userController.getById);
+  router.post('/', validateUserBody, userController.create);
 
   return router;
 }

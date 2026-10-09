@@ -9,10 +9,13 @@ import { buildApp, createTempDataFile, expectError, readUsers } from './helpers/
 const ALLOWED_ORIGIN = 'http://localhost:5173';
 // A data file cut off in the middle of a user.
 const CORRUPT_CONTENT = '[{"id": 1, "name":';
+// Valid input whose username and email no seed user has.
+const NEW_USER = { name: 'New User', username: 'new.user', email: 'new.user@example.com' };
 
 const MALFORMED_JSON = 'Request body is not valid JSON.';
 const ROUTE_NOT_FOUND = 'Route not found.';
 const INVALID_ID = 'User id must be a positive integer.';
+const VALIDATION_FAILED = 'Validation failed.';
 const CORRUPT_FILE = 'User data file is corrupt.';
 
 describe('createApp', () => {
@@ -78,13 +81,17 @@ describe('createApp', () => {
       await fs.writeFile(filePath, CORRUPT_CONTENT, 'utf8');
     });
 
+    // A request that writes needs a valid body, because the body is validated
+    // before the data file is read.
     it.each([
-      ['GET', '/api/users'],
-      ['GET', '/api/users/1'],
-    ])('responds 500 to %s %s and logs the error', async (method, path) => {
+      ['GET', '/api/users', undefined],
+      ['GET', '/api/users/1', undefined],
+      ['POST', '/api/users', NEW_USER],
+    ])('responds 500 to %s %s and logs the error', async (method, path, body) => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const res = await request(app)[method.toLowerCase()](path);
+      const pending = request(app)[method.toLowerCase()](path);
+      const res = await (body === undefined ? pending : pending.send(body));
 
       expectError(res, 500, CORRUPT_FILE);
       expect(consoleError).toHaveBeenCalledWith(expect.any(CorruptDataFileError));
@@ -123,7 +130,8 @@ describe('createApp', () => {
     });
 
     // `first` is the check that decides the response and `later` a check the
-    // request also fails. `corruptFile` replaces the data file before sending.
+    // request also fails. `corruptFile` replaces the data file before sending,
+    // and `fields` is given only for a response that carries field errors.
     it.each([
       {
         first: 'malformed JSON',
@@ -151,6 +159,19 @@ describe('createApp', () => {
         message: INVALID_ID,
       },
       {
+        first: 'invalid user input',
+        later: 'the corrupt data file',
+        send: () => request(app).post('/api/users').send({ name: 'A' }),
+        corruptFile: true,
+        status: 400,
+        message: VALIDATION_FAILED,
+        fields: {
+          name: 'Name must be between 2 and 100 characters.',
+          username: 'Username is required.',
+          email: 'Email is required.',
+        },
+      },
+      {
         first: 'the corrupt data file',
         later: 'the unused id',
         send: () => request(app).get(`/api/users/${unusedId}`),
@@ -160,14 +181,14 @@ describe('createApp', () => {
       },
     ])(
       'reports $first ($status) before $later',
-      async ({ send, corruptFile, status, message }) => {
+      async ({ send, corruptFile, status, message, fields }) => {
         // Keeps the error logged for a 500 out of the test output.
         vi.spyOn(console, 'error').mockImplementation(() => {});
         if (corruptFile) {
           await fs.writeFile(filePath, CORRUPT_CONTENT, 'utf8');
         }
 
-        expectError(await send(), status, message);
+        expectError(await send(), status, message, fields);
       },
     );
   });

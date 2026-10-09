@@ -14,5 +14,13 @@ export function createUserController(userService) {
     async getById(req, res) {
       res.status(200).json(await userService.getUser(Number(req.params.id)));
     },
+
+    /**
+     * Creates a user and sends it with 201. validateUserBody has already
+     * replaced the body with the trimmed name, username, and email.
+     */
+    async create(req, res) {
+      res.status(201).json(await userService.createUser(req.body));
+    },
   };
 }
