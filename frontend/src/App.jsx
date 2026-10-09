@@ -26,10 +26,18 @@ function matchesSearch(user, term) {
 function App() {
   const { users, loading, error, reload } = useUsers();
   const [searchText, setSearchText] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const searchTerm = useDebouncedValue(searchText, 300).trim();
 
   function handleSearchChange(text) {
     setSearchText(text);
+    setPage(0);
+  }
+
+  function handleRowsPerPageChange(rows) {
+    setRowsPerPage(rows);
+    setPage(0);
   }
 
   return (
@@ -46,6 +54,10 @@ function App() {
           loading={loading}
           error={error}
           onRetry={reload}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Stack>
     </Box>

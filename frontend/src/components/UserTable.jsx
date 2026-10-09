@@ -8,11 +8,21 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 
 // Shows only a spinner while the list loads, only the error with a Retry
 // button after a failed load, and otherwise the table of users.
-function UserTable({ users, loading, error, onRetry }) {
+function UserTable({
+  users,
+  loading,
+  error,
+  onRetry,
+  page,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+}) {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -36,6 +46,11 @@ function UserTable({ users, loading, error, onRetry }) {
     );
   }
 
+  const pageUsers = users.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage,
+  );
+
   return (
     <TableContainer component={Paper}>
       <Table aria-label="Users">
@@ -53,7 +68,7 @@ function UserTable({ users, loading, error, onRetry }) {
               <TableCell colSpan={4}>No users found</TableCell>
             </TableRow>
           ) : (
-            users.map((user) => (
+            pageUsers.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>{user.name}</TableCell>
                 <TableCell>{user.username}</TableCell>
@@ -64,6 +79,17 @@ function UserTable({ users, loading, error, onRetry }) {
           )}
         </TableBody>
       </Table>
+      <TablePagination
+        component="div"
+        rowsPerPageOptions={[5, 10, 25]}
+        count={users.length}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        onPageChange={(_event, newPage) => onPageChange(newPage)}
+        onRowsPerPageChange={(event) =>
+          onRowsPerPageChange(Number(event.target.value))
+        }
+      />
     </TableContainer>
   );
 }
