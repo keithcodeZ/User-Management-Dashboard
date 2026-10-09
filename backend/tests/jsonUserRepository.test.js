@@ -24,6 +24,7 @@ describe('JsonUserRepository', () => {
   });
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     await fs.rm(dir, { recursive: true, force: true });
   });
 
@@ -64,6 +65,26 @@ describe('JsonUserRepository', () => {
     expect(await fs.readFile(filePath, 'utf8')).toBe(`${JSON.stringify(expected, null, 2)}\n`);
     await expect(repository.getAll()).resolves.toEqual(expected);
     expect(await fs.readdir(dir)).toEqual(['user.json']);
+  });
+
+  it.each([
+    ['writing the temp file', 'writeFile'],
+    ['renaming the temp file over the data file', 'rename'],
+  ])('keeps the data file and leaves no temp file when %s fails', async (_description, method) => {
+    const before = await fs.readFile(filePath);
+    const storedUsers = await readUsers(filePath);
+    const failure = Object.assign(new Error('EPERM: operation not permitted'), { code: 'EPERM' });
+    vi.spyOn(fs, method).mockRejectedValueOnce(failure);
+
+    await expect(
+      repository.modify((users) => {
+        users.push(makeUser(100));
+      }),
+    ).rejects.toBe(failure);
+
+    expect(await fs.readFile(filePath)).toEqual(before);
+    expect(await fs.readdir(dir)).toEqual(['user.json']);
+    await expect(repository.getAll()).resolves.toEqual(storedUsers);
   });
 
   it('runs queued operations one at a time in call order, each seeing the previous save', async () => {

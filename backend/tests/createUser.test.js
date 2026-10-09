@@ -176,6 +176,15 @@ describe('POST /api/users', () => {
     expect(consoleError).toHaveBeenCalledWith(expect.any(CorruptDataFileError));
   });
 
+  it('responds with the generic 500 and keeps the data file unchanged when the save fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failure = Object.assign(new Error('EPERM: operation not permitted'), { code: 'EPERM' });
+    vi.spyOn(fs, 'rename').mockRejectedValueOnce(failure);
+
+    await expectFailure(() => postUser(paddedInput), 500, 'Internal server error.');
+    expect(consoleError).toHaveBeenCalledWith(failure);
+  });
+
   // Body parsing leaves no object holding the fields for any of these: the
   // body is undefined, `{}`, or a JSON value that is not an object.
   it.each([
