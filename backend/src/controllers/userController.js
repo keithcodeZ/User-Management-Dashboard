@@ -31,5 +31,14 @@ export function createUserController(userService) {
     async update(req, res) {
       res.status(200).json(await userService.updateUser(Number(req.params.id), req.body));
     },
+
+    /**
+     * Removes the user with the `:id` and sends 204 with an empty body.
+     * validateIdParam has already checked the id.
+     */
+    async remove(req, res) {
+      await userService.deleteUser(Number(req.params.id));
+      res.status(204).end();
+    },
   };
 }

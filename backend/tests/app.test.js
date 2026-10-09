@@ -82,13 +82,14 @@ describe('createApp', () => {
       await fs.writeFile(filePath, CORRUPT_CONTENT, 'utf8');
     });
 
-    // A request that writes needs a valid body, because the body is validated
+    // A create or update needs a valid body, because the body is validated
     // before the data file is read.
     it.each([
       ['GET', '/api/users', undefined],
       ['GET', '/api/users/1', undefined],
       ['POST', '/api/users', NEW_USER],
       ['PUT', '/api/users/1', NEW_USER],
+      ['DELETE', '/api/users/1', undefined],
     ])('responds 500 to %s %s and logs the error', async (method, path, body) => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -134,11 +135,13 @@ describe('createApp', () => {
       takenUsername = storedUsers[0].username.toUpperCase();
     });
 
+    // `endpoint` labels the title with the method and path that `send` uses.
     // `first` is the check that decides the response and `later` a check the
     // request also fails. `corruptFile` replaces the data file before sending,
     // and `fields` is given only for a response that carries field errors.
     it.each([
       {
+        endpoint: 'POST /api/unknown',
         first: 'malformed JSON',
         later: 'the unknown route',
         send: () =>
@@ -148,6 +151,7 @@ describe('createApp', () => {
         message: MALFORMED_JSON,
       },
       {
+        endpoint: 'GET /api/users/abc/extra',
         first: 'the unknown route',
         later: 'the invalid id',
         send: () => request(app).get('/api/users/abc/extra'),
@@ -156,6 +160,7 @@ describe('createApp', () => {
         message: ROUTE_NOT_FOUND,
       },
       {
+        endpoint: 'PUT /api/users/abc',
         first: 'the invalid id',
         later: 'invalid user input',
         send: () => request(app).put('/api/users/abc').send({ name: 'A' }),
@@ -164,6 +169,7 @@ describe('createApp', () => {
         message: INVALID_ID,
       },
       {
+        endpoint: 'GET /api/users/abc',
         first: 'the invalid id',
         later: 'the corrupt data file',
         send: () => request(app).get('/api/users/abc'),
@@ -172,6 +178,16 @@ describe('createApp', () => {
         message: INVALID_ID,
       },
       {
+        endpoint: 'DELETE /api/users/abc',
+        first: 'the invalid id',
+        later: 'the corrupt data file',
+        send: () => request(app).delete('/api/users/abc'),
+        corruptFile: true,
+        status: 400,
+        message: INVALID_ID,
+      },
+      {
+        endpoint: 'POST /api/users',
         first: 'invalid user input',
         later: 'the corrupt data file',
         send: () => request(app).post('/api/users').send({ name: 'A' }),
@@ -185,6 +201,7 @@ describe('createApp', () => {
         },
       },
       {
+        endpoint: 'GET /api/users/<unused id>',
         first: 'the corrupt data file',
         later: 'the unused id',
         send: () => request(app).get(`/api/users/${unusedId}`),
@@ -193,6 +210,7 @@ describe('createApp', () => {
         message: CORRUPT_FILE,
       },
       {
+        endpoint: 'PUT /api/users/<unused id>',
         first: 'the unknown user',
         later: 'a username in use',
         send: () =>
@@ -202,7 +220,7 @@ describe('createApp', () => {
         message: USER_NOT_FOUND,
       },
     ])(
-      'reports $first ($status) before $later',
+      '$endpoint: reports $first ($status) before $later',
       async ({ send, corruptFile, status, message, fields }) => {
         // Keeps the error logged for a 500 out of the test output.
         vi.spyOn(console, 'error').mockImplementation(() => {});
